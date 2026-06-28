@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Prompt Analyzer</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        /* Custom animations & scrollbar */
+        @keyframes pulse-glow {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        .animate-pulse-glow {
+            animation: pulse-glow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #000;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #164e63; /* cyan-900 */
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #0891b2; /* cyan-600 */
+        }
+        .hidden-element {
+            display: none !important;
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-black text-gray-300 font-sans p-4 md:p-8 relative z-0 selection:bg-cyan-900 selection:text-cyan-100 overflow-x-hidden">
+    
+    <!-- Background glowing effect -->
+    <div class="fixed inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-cyan-950/20 via-black to-black -z-10"></div>
+
+    <div class="max-w-5xl mx-auto space-y-8 relative">
+        
+        <!-- Language Toggle -->
+        <div class="flex justify-end">
+            <div class="inline-flex items-center bg-gray-900 border border-cyan-800/50 rounded-full p-1 backdrop-blur-md">
+                <i data-lucide="globe" class="text-cyan-500 w-4 h-4 ml-2 mr-1"></i>
+                <button id="btnLangID" class="px-4 py-1.5 rounded-full text-sm font-bold transition-all duration-300 bg-cyan-500 text-black shadow-[0_0_10px_rgba(6,182,212,0.5)]">
+                    ID
+                </button>
+                <button id="btnLangEN" class="px-4 py-1.5 rounded-full text-sm font-bold transition-all duration-300 text-gray-500 hover:text-cyan-400">
+                    EN
+                </button>
+            </div>
+        </div>
+
+        <!-- Header Section -->
+        <header class="text-center space-y-4 pt-2">
+            <div class="inline-flex items-center justify-center p-4 bg-gray-900/80 border border-cyan-500/30 text-cyan-400 rounded-2xl mb-2 shadow-[0_0_20px_rgba(6,182,212,0.15)] backdrop-blur-sm">
+                <i data-lucide="activity" class="w-9 h-9 animate-pulse"></i>
+            </div>
+            <h1 class="text-4xl md:text-5xl font-black tracking-tight text-white">
+                <span data-i18n="title">AI Prompt</span> <span data-i18n="titleHighlight" class="text-cyan-400 drop-shadow-[0_0_15px_rgba(6,182,212,0.6)]">Analyzer</span>
+            </h1>
+            <p data-i18n="subtitle" class="text-lg text-gray-400 max-w-2xl mx-auto">
+                Sistem pakar yang berpikir mandiri, kritis, dan objektif untuk membedah, mengevaluasi, dan menyempurnakan prompt Anda.
+            </p>
+        </header>
+
+        <!-- Input Section -->
+        <div class="bg-gray-900/60 rounded-3xl shadow-2xl border border-cyan-900/50 p-6 md:p-8 backdrop-blur-xl">
+            <label for="promptInput" data-i18n="inputLabel" class="block text-sm font-bold text-cyan-500 mb-3 uppercase tracking-widest">
+                Masukkan Prompt Anda
+            </label>
+            <div class="relative group">
+                <div class="absolute -inset-0.5 bg-gradient-to-r from-cyan-600 to-blue-600 rounded-2xl blur opacity-20 group-hover:opacity-40 transition duration-500"></div>
+                <textarea
+                    id="promptInput"
+                    placeholder="Contoh: 'Buatkan saya esai tentang kecerdasan buatan.'"
+                    class="relative w-full bg-black/80 border border-gray-800 rounded-2xl p-5 text-gray-100 text-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-all resize-none min-h-[120px] placeholder:text-gray-700"
+                    oninput="this.style.height = ''; this.style.height = Math.max(120, this.scrollHeight) + 'px'"
+                ></textarea>
+            </div>
+            
+            <!-- Error Message Container -->
+            <div id="errorContainer" class="hidden-element mt-4 p-4 bg-red-950/40 text-red-400 border border-red-900/50 rounded-xl flex items-start gap-3 backdrop-blur-sm">
+                <i data-lucide="alert-triangle" class="shrink-0 w-5 h-5 mt-0.5"></i>
+                <p id="errorMessage" class="text-sm font-medium"></p>
+            </div>
+
+            <div class="mt-6 flex justify-end">
+                <button id="analyzeBtn" class="bg-cyan-500 hover:bg-cyan-400 text-black font-black py-3 px-8 rounded-xl flex items-center gap-3 transition-all duration-300 shadow-[0_0_20px_rgba(6,182,212,0.3)] hover:shadow-[0_0_30px_rgba(6,182,212,0.6)] uppercase tracking-wider text-sm disabled:bg-gray-800 disabled:text-gray-500 disabled:shadow-none">
+                    <i data-lucide="search" id="analyzeIcon" class="w-5 h-5"></i>
+                    <span id="analyzeBtnText" data-i18n="btnAnalyze">Analisis Kritis</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Result Section -->
+        <div id="resultContainer" class="hidden-element space-y-6 transition-all duration-700 opacity-0 translate-y-4">
+            
+            <!-- Top Stats: Score & Summary -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="bg-gray-900/60 rounded-3xl border border-cyan-900/50 p-8 flex flex-col items-center justify-center text-center backdrop-blur-xl relative overflow-hidden">
+                    <div class="absolute top-0 right-0 w-32 h-32 bg-cyan-500/5 rounded-full blur-3xl"></div>
+                    <div data-i18n="scoreLabel" class="text-sm font-bold text-gray-500 uppercase tracking-widest mb-4">Skor Efektivitas</div>
+                    <div id="scoreValue" class="text-7xl font-black drop-shadow-[0_0_15px_currentColor]">0</div>
+                    <div class="w-full bg-gray-950 rounded-full h-2.5 mt-8 border border-gray-800">
+                        <div id="scoreBar" class="h-full rounded-full transition-all duration-1000 ease-out" style="width: 0%"></div>
+                    </div>
+                </div>
+                
+                <div class="md:col-span-2 bg-gray-900/60 rounded-3xl border border-cyan-900/50 p-8 flex flex-col justify-center backdrop-blur-xl">
+                    <div class="flex items-center gap-3 mb-4">
+                        <i data-lucide="activity" class="text-cyan-500 w-6 h-6"></i>
+                        <h2 data-i18n="summaryLabel" class="text-xl font-bold text-gray-100">Kesimpulan Evaluasi</h2>
+                    </div>
+                    <p id="summaryText" class="text-gray-300 leading-relaxed text-lg"></p>
+                </div>
+            </div>
+
+            <!-- Strengths & Weaknesses -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Strengths -->
+                <div class="bg-gray-900/40 rounded-3xl border border-emerald-900/30 p-6 md:p-8 backdrop-blur-xl">
+                    <div class="flex items-center gap-3 mb-6">
+                        <i data-lucide="check-circle" class="text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.5)] w-6 h-6"></i>
+                        <h3 data-i18n="strengthsLabel" class="text-lg font-bold text-emerald-400">Kekuatan (Strengths)</h3>
+                    </div>
+                    <ul id="strengthsList" class="space-y-4"></ul>
+                </div>
+
+                <!-- Weaknesses -->
+                <div class="bg-gray-900/40 rounded-3xl border border-red-900/30 p-6 md:p-8 backdrop-blur-xl">
+                    <div class="flex items-center gap-3 mb-6">
+                        <i data-lucide="alert-triangle" class="text-red-400 drop-shadow-[0_0_8px_rgba(248,113,113,0.5)] w-6 h-6"></i>
+                        <h3 data-i18n="weaknessesLabel" class="text-lg font-bold text-red-400">Kelemahan (Weaknesses)</h3>
+                    </div>
+                    <ul id="weaknessesList" class="space-y-4"></ul>
+                </div>
+            </div>
+
+            <!-- Detailed Analysis Breakdown -->
+            <div class="bg-gray-900/60 rounded-3xl border border-cyan-900/50 p-6 md:p-8 backdrop-blur-xl">
+                <h2 class="text-2xl font-bold text-white mb-8 flex items-center gap-3">
+                    <i data-lucide="search" class="text-cyan-500 w-6 h-6"></i>
+                    <span data-i18n="detailedLabel">Analisis Kritis Mendalam</span>
+                </h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    
+                    <div class="space-y-3">
+                        <h4 data-i18n="clarityLabel" class="font-bold text-cyan-600 uppercase text-xs tracking-widest">Tingkat Kejelasan (Clarity)</h4>
+                        <p id="clarityText" class="text-gray-400 bg-black/60 p-5 rounded-2xl border border-gray-800/50 min-h-[100px] leading-relaxed"></p>
+                    </div>
+                    
+                    <div class="space-y-3">
+                        <h4 data-i18n="contextLabel" class="font-bold text-cyan-600 uppercase text-xs tracking-widest">Ketersediaan Konteks (Context)</h4>
+                        <p id="contextText" class="text-gray-400 bg-black/60 p-5 rounded-2xl border border-gray-800/50 min-h-[100px] leading-relaxed"></p>
+                    </div>
+                    
+                    <div class="space-y-3">
+                        <h4 data-i18n="specificityLabel" class="font-bold text-cyan-600 uppercase text-xs tracking-widest">Kespesifikan Detail (Specificity)</h4>
+                        <p id="specificityText" class="text-gray-400 bg-black/60 p-5 rounded-2xl border border-gray-800/50 min-h-[100px] leading-relaxed"></p>
+                    </div>
+                    
+                    <div class="space-y-3">
+                        <h4 data-i18n="actionabilityLabel" class="font-bold text-cyan-600 uppercase text-xs tracking-widest">Dapat Ditindaklanjuti (Actionability)</h4>
+                        <p id="actionabilityText" class="text-gray-400 bg-black/60 p-5 rounded-2xl border border-gray-800/50 min-h-[100px] leading-relaxed"></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Improved Prompt Section -->
+            <div class="relative group">
+                <div class="absolute -inset-1 bg-gradient-to-r from-cyan-600 via-blue-600 to-cyan-600 rounded-3xl blur opacity-30 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
+                <div class="relative bg-gray-950 rounded-3xl border border-cyan-500/30 p-6 md:p-8 backdrop-blur-xl">
+                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                        <div class="flex items-center gap-4">
+                            <div class="bg-cyan-500/10 p-3 rounded-xl text-cyan-400 border border-cyan-500/20">
+                                <i data-lucide="sparkles" class="w-6 h-6 animate-pulse"></i>
+                            </div>
+                            <h2 data-i18n="improvedTitle" class="text-2xl font-bold text-white">Prompt yang Disempurnakan</h2>
+                        </div>
+                        <button id="copyBtn" class="flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold transition-all duration-300 bg-gray-800 hover:bg-cyan-900/50 text-gray-300 hover:text-cyan-400 border border-gray-700 hover:border-cyan-500/50">
+                            <i data-lucide="copy" id="copyIcon" class="w-4 h-4"></i>
+                            <span id="copyText" data-i18n="copy">Salin Prompt</span>
+                        </button>
+                    </div>
+                    
+                    <div class="bg-black rounded-2xl p-6 relative border border-gray-800">
+                        <div class="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-cyan-400 to-blue-600 rounded-l-2xl"></div>
+                        <p id="improvedPromptText" class="text-cyan-50 text-lg leading-relaxed whitespace-pre-wrap font-mono pl-4"></p>
+                    </div>
+                    <p data-i18n="improvedFooter" class="text-gray-500 text-sm mt-5 text-center px-4">
+                        Gunakan prompt di atas untuk mendapatkan hasil yang jauh lebih optimal, akurat, dan sesuai dengan ekspektasi Anda dari AI.
+                    </p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // Initialize Lucide Icons
+        lucide.createIcons();
+
+        // Data & State
+        const translations = {
+            id: {
+                title: "AI Prompt",
+                titleHighlight: "Analyzer",
+                subtitle: "Sistem pakar yang berpikir mandiri, kritis, dan objektif untuk membedah, mengevaluasi, dan menyempurnakan prompt Anda.",
+                inputLabel: "Masukkan Prompt Anda",
+                inputPlaceholder: "Contoh: 'Buatkan saya esai tentang kecerdasan buatan.'",
+                errorEmpty: "Mohon masukkan prompt yang ingin dianalisis terlebih dahulu.",
+                errorAPI: "Gagal menganalisis prompt. Pastikan koneksi internet stabil atau coba lagi.",
+                errorFormat: "Format respons tidak terduga dari AI.",
+                btnAnalyzing: "Menganalisis...",
+                btnAnalyze: "Analisis Kritis",
+                scoreLabel: "Skor Efektivitas",
+                summaryLabel: "Kesimpulan Evaluasi",
+                strengthsLabel: "Kekuatan (Strengths)",
+                weaknessesLabel: "Kelemahan (Weaknesses)",
+                noStrengths: "Tidak ada kekuatan mencolok yang terdeteksi.",
+                noWeaknesses: "Prompt sudah sangat baik, tidak ada kelemahan mayor.",
+                detailedLabel: "Analisis Kritis Mendalam",
+                clarityLabel: "Tingkat Kejelasan (Clarity)",
+                contextLabel: "Ketersediaan Konteks (Context)",
+                specificityLabel: "Kespesifikan Detail (Specificity)",
+                actionabilityLabel: "Dapat Ditindaklanjuti (Actionability)",
+                improvedTitle: "Prompt yang Disempurnakan",
+                copied: "Tersalin!",
+                copy: "Salin Prompt",
+                improvedFooter: "Gunakan prompt di atas untuk mendapatkan hasil yang jauh lebih optimal, akurat, dan sesuai dengan ekspektasi Anda dari AI."
+            },
+            en: {
+                title: "AI Prompt",
+                titleHighlight: "Analyzer",
+                subtitle: "An expert system that thinks independently, critically, and objectively to dissect, evaluate, and refine your prompts.",
+                inputLabel: "Enter Your Prompt",
+                inputPlaceholder: "Example: 'Write an essay about artificial intelligence.'",
+                errorEmpty: "Please enter a prompt to analyze first.",
+                errorAPI: "Failed to analyze prompt. Please check your connection or try again.",
+                errorFormat: "Unexpected response format from AI.",
+                btnAnalyzing: "Analyzing...",
+                btnAnalyze: "Critical Analysis",
+                scoreLabel: "Effectiveness Score",
+                summaryLabel: "Evaluation Summary",
+                strengthsLabel: "Strengths",
+                weaknessesLabel: "Weaknesses",
+                noStrengths: "No notable strengths detected.",
+                noWeaknesses: "The prompt is excellent, no major weaknesses.",
+                detailedLabel: "In-Depth Critical Analysis",
+                clarityLabel: "Clarity Level",
+                contextLabel: "Context Availability",
+                specificityLabel: "Detail Specificity",
+                actionabilityLabel: "Actionability",
+                improvedTitle: "Improved Prompt",
+                copied: "Copied!",
+                copy: "Copy Prompt",
+                improvedFooter: "Use the prompt above to get far more optimal, accurate, and expected results from AI."
+            }
+        };
+
+        let currentLang = 'id';
+        let isAnalyzing = false;
+        let improvedPromptGlobal = "";
+
+        // DOM Elements
+        const btnLangID = document.getElementById('btnLangID');
+        const btnLangEN = document.getElementById('btnLangEN');
+        const promptInput = document.getElementById('promptInput');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const analyzeBtnText = document.getElementById('analyzeBtnText');
+        const analyzeIcon = document.getElementById('analyzeIcon');
+        const errorContainer = document.getElementById('errorContainer');
+        const errorMessage = document.getElementById('errorMessage');
+        const resultContainer = document.getElementById('resultContainer');
+        
+        // Output Elements
+        const scoreValue = document.getElementById('scoreValue');
+        const scoreBar = document.getElementById('scoreBar');
+        const summaryText = document.getElementById('summaryText');
+        const strengthsList = document.getElementById('strengthsList');
+        const weaknessesList = document.getElementById('weaknessesList');
+        const clarityText = document.getElementById('clarityText');
+        const contextText = document.getElementById('contextText');
+        const specificityText = document.getElementById('specificityText');
+        const actionabilityText = document.getElementById('actionabilityText');
+        const improvedPromptText = document.getElementById('improvedPromptText');
+        const copyBtn = document.getElementById('copyBtn');
+        const copyIcon = document.getElementById('copyIcon');
+        const copyText = document.getElementById('copyText');
+
+        // Functions
+        function updateUI() {
+            const t = translations[currentLang];
+            
+            // Update static texts
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (t[key]) el.textContent = t[key];
+            });
+
+            // Update placeholders
+            promptInput.placeholder = t.inputPlaceholder;
+
+            // Update toggles styles
+            if (currentLang === 'id') {
+                btnLangID.className = "px-4 py-1.5 rounded-full text-sm font-bold transition-all duration-300 bg-cyan-500 text-black shadow-[0_0_10px_rgba(6,182,212,0.5)]";
+                btnLangEN.className = "px-4 py-1.5 rounded-full text-sm font-bold transition-all duration-300 text-gray-500 hover:text-cyan-400";
+            } else {
+                btnLangEN.className = "px-4 py-1.5 rounded-full text-sm font-bold transition-all duration-300 bg-cyan-500 text-black shadow-[0_0_10px_rgba(6,182,212,0.5)]";
+                btnLangID.className = "px-4 py-1.5 rounded-full text-sm font-bold transition-all duration-300 text-gray-500 hover:text-cyan-400";
+            }
+        }
+
+        function showError(msg) {
+            errorMessage.textContent = msg;
+            errorContainer.classList.remove('hidden-element');
+        }
+
+        function hideError() {
+            errorContainer.classList.add('hidden-element');
+        }
+
+        function getScoreColor(score) {
+            if (score >= 80) return 'text-cyan-400';
+            if (score >= 60) return 'text-yellow-400';
+            return 'text-red-500';
+        }
+
+        function getScoreBg(score) {
+            if (score >= 80) return 'bg-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.8)]';
+            if (score >= 60) return 'bg-yellow-400 shadow-[0_0_10px_rgba(250,204,21,0.8)]';
+            return 'bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.8)]';
+        }
+
+        function renderList(container, items, iconName, iconColorClass, emptyMsg) {
+            container.innerHTML = '';
+            if (!items || items.length === 0) {
+                container.innerHTML = `<li class="text-gray-500 italic">${emptyMsg}</li>`;
+                return;
+            }
+            items.forEach(item => {
+                const li = document.createElement('li');
+                li.className = "flex items-start gap-3 text-gray-300";
+                li.innerHTML = `
+                    <i data-lucide="chevron-right" class="shrink-0 mt-0.5 w-4 h-4 ${iconColorClass}"></i>
+                    <span class="leading-relaxed">${item}</span>
+                `;
+                container.appendChild(li);
+            });
+            lucide.createIcons({ root: container }); // Re-init icons inside new list
+        }
+
+        async function handleAnalyze() {
+            const promptText = promptInput.value.trim();
+            const t = translations[currentLang];
+
+            if (!promptText) {
+                showError(t.errorEmpty);
+                return;
+            }
+
+            // Set Loading State
+            isAnalyzing = true;
+            hideError();
+            resultContainer.classList.add('hidden-element');
+            resultContainer.classList.remove('opacity-100', 'translate-y-0');
+            resultContainer.classList.add('opacity-0', 'translate-y-4');
+            
+            analyzeBtn.disabled = true;
+            promptInput.disabled = true;
+            analyzeBtnText.textContent = t.btnAnalyzing;
+            analyzeIcon.setAttribute('data-lucide', 'refresh-cw');
+            analyzeIcon.classList.add('animate-spin');
+            lucide.createIcons();
+
+            try {
+                // Konfigurasi menggunakan model gemini 3 flash preview sesuai standar sistem
+                const apiKey = "AQ.Ab8RN6Jtud2ZSgjV68zturm9xuE2bqg5kwzWHyDT3PWlaaEvTw"; // API key dikosongkan, ditangani otomatis oleh Canvas env
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+
+                const sysInst = currentLang === 'en' 
+                    ? "You are an advanced 'Prompt Analyzer' AI (Prompt Engineering Expert). Your task is to analyze the user's prompt in a way that is:\n1. Independent & Critical: Point out flaws if it's too ambiguous, broad, or lacks context.\n2. Objective: Evaluate based on clear metrics (clarity, context, detail, actionability).\n3. Effective & Proper: Use professional and constructive English.\n\nProvide detailed analysis, a quality score (0-100), and an improved version of the prompt that is much more effective for LLMs."
+                    : "Anda adalah AI 'Prompt Analyzer' (Pakar Prompt Engineering) tingkat lanjut. Tugas Anda adalah menganalisis prompt yang diberikan oleh pengguna dengan cara yang:\n1. Mandiri & Kritis: Jangan ragu untuk menunjukkan kekurangan prompt jika terlalu ambigu, luas, atau kurang konteks.\n2. Objektif: Berikan penilaian berdasarkan metrik yang jelas (kejelasan, konteks, detail, instruksi).\n3. Efektif & Proper: Gunakan bahasa Indonesia yang baku, profesional, dan membangun.\n\nBerikan analisis terperinci, skor kualitas (0-100), dan berikan versi prompt yang sudah disempurnakan agar jauh lebih efektif jika digunakan pada LLM.";
+
+                const promptPrefix = currentLang === 'en' ? 'Analyze this prompt:\n\n' : 'Analisis prompt berikut ini:\n\n';
+
+                const payload = {
+                    contents: [{ parts: [{ text: `${promptPrefix}"${promptText}"` }] }],
+                    systemInstruction: { parts: [{ text: sysInst }] },
+                    generationConfig: {
+                        responseMimeType: "application/json",
+                        responseSchema: {
+                            type: "OBJECT",
+                            properties: {
+                                score: { type: "INTEGER", description: "Score from 0 to 100" },
+                                summary: { type: "STRING", description: "Executive summary of the prompt's quality" },
+                                strengths: { type: "ARRAY", items: { type: "STRING" }, description: "List of strengths" },
+                                weaknesses: { type: "ARRAY", items: { type: "STRING" }, description: "List of weaknesses or areas to improve" },
+                                detailedAnalysis: {
+                                    type: "OBJECT",
+                                    properties: {
+                                        clarity: { type: "STRING" },
+                                        context: { type: "STRING" },
+                                        specificity: { type: "STRING" },
+                                        actionability: { type: "STRING" }
+                                    }
+                                },
+                                improvedPrompt: { type: "STRING", description: "The revised, highly optimized version of the prompt" }
+                            }
+                        }
+                    }
+                };
+
+                // Implement Retry Logic (Exponential Backoff)
+                const fetchWithRetry = async (url, options, retries = 5) => {
+                    const delays = [1000, 2000, 4000, 8000, 16000];
+                    for (let i = 0; i < retries; i++) {
+                        try {
+                            const res = await fetch(url, options);
+                            if (res.ok) return res;
+                            if (i === retries - 1) throw new Error(`API Error: ${res.status}`);
+                        } catch (err) {
+                            if (i === retries - 1) throw err;
+                        }
+                        await new Promise(resolve => setTimeout(resolve, delays[i]));
+                    }
+                };
+
+                const response = await fetchWithRetry(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+                
+                if (data.candidates && data.candidates[0]?.content?.parts?.[0]?.text) {
+                    const result = JSON.parse(data.candidates[0].content.parts[0].text);
+                    displayResult(result);
+                } else {
+                    throw new Error(t.errorFormat);
+                }
+            } catch (err) {
+                console.error(err);
+                showError(t.errorAPI);
+            } finally {
+                // Reset Loading State
+                isAnalyzing = false;
+                analyzeBtn.disabled = false;
+                promptInput.disabled = false;
+                analyzeBtnText.textContent = t.btnAnalyze;
+                analyzeIcon.setAttribute('data-lucide', 'search');
+                analyzeIcon.classList.remove('animate-spin');
+                lucide.createIcons();
+            }
+        }
+
+        function displayResult(result) {
+            const t = translations[currentLang];
+            improvedPromptGlobal = result.improvedPrompt;
+
+            // Setup Score
+            scoreValue.textContent = result.score;
+            scoreValue.className = `text-7xl font-black drop-shadow-[0_0_15px_currentColor] ${getScoreColor(result.score)}`;
+            
+            // Reset bar first to animate it
+            scoreBar.style.width = '0%';
+            scoreBar.className = `h-full rounded-full transition-all duration-1000 ease-out ${getScoreBg(result.score)}`;
+            
+            // Summary
+            summaryText.textContent = result.summary;
+
+            // Lists
+            renderList(strengthsList, result.strengths, 'chevron-right', 'text-emerald-500', t.noStrengths);
+            renderList(weaknessesList, result.weaknesses, 'chevron-right', 'text-red-500', t.noWeaknesses);
+
+            // Detailed Breakdown
+            clarityText.textContent = result.detailedAnalysis.clarity;
+            contextText.textContent = result.detailedAnalysis.context;
+            specificityText.textContent = result.detailedAnalysis.specificity;
+            actionabilityText.textContent = result.detailedAnalysis.actionability;
+
+            // Improved Prompt
+            improvedPromptText.textContent = result.improvedPrompt;
+
+            // Show Container
+            resultContainer.classList.remove('hidden-element');
+            
+            // Trigger animations
+            setTimeout(() => {
+                resultContainer.classList.remove('opacity-0', 'translate-y-4');
+                resultContainer.classList.add('opacity-100', 'translate-y-0');
+                scoreBar.style.width = `${result.score}%`;
+            }, 50);
+        }
+
+        // Event Listeners
+        btnLangID.addEventListener('click', () => {
+            currentLang = 'id';
+            updateUI();
+        });
+
+        btnLangEN.addEventListener('click', () => {
+            currentLang = 'en';
+            updateUI();
+        });
+
+        analyzeBtn.addEventListener('click', handleAnalyze);
+
+        // Copy functionality
+        copyBtn.addEventListener('click', () => {
+            if (!improvedPromptGlobal) return;
+            
+            // HTML5 Clipboard API
+            navigator.clipboard.writeText(improvedPromptGlobal).then(() => {
+                const t = translations[currentLang];
+                copyText.textContent = t.copied;
+                copyIcon.setAttribute('data-lucide', 'check');
+                copyBtn.classList.remove('bg-gray-800', 'text-gray-300', 'border-gray-700');
+                copyBtn.classList.add('bg-emerald-500/20', 'text-emerald-400', 'border-emerald-500/50');
+                lucide.createIcons();
+                
+                setTimeout(() => {
+                    copyText.textContent = t.copy;
+                    copyIcon.setAttribute('data-lucide', 'copy');
+                    copyBtn.classList.add('bg-gray-800', 'text-gray-300', 'border-gray-700');
+                    copyBtn.classList.remove('bg-emerald-500/20', 'text-emerald-400', 'border-emerald-500/50');
+                    lucide.createIcons();
+                }, 2000);
+            }).catch(err => {
+                console.error("Gagal menyalin teks: ", err);
+                // Fallback execCommand
+                const textArea = document.createElement("textarea");
+                textArea.value = improvedPromptGlobal;
+                document.body.appendChild(textArea);
+                textArea.select();
+                try {
+                    document.execCommand('copy');
+                } catch (err) {
+                    console.error('Fallback copy error', err);
+                }
+                document.body.removeChild(textArea);
+            });
+        });
+
+        // Initialize UI
+        updateUI();
+
+    </script>
+</body>
+</html>
